@@ -23,12 +23,14 @@ def parser():
     parser.add_argument('--warning_blocks',action='store', type=int,default=250000)
     parser.add_argument('--warning_balanced',action='store',type=float,default=5.00)
     parser.add_argument('--warning_corrupt',action='store',type=int,default=0)
+    parser.add_argument('--warning_datanodes',action='store',type=int,default=4)
     parser.add_argument('--warning_missing',action='store',type=int,default=0)
     parser.add_argument('--warning_ureplicated',action='store',type=int,default=20)
     parser.add_argument('--critical_used',action='store', type=float,default=85)
     parser.add_argument('--critical_blocks',action='store', type=int,default=350000)
     parser.add_argument('--critical_balanced',action='store',type=float,default=10.00)
     parser.add_argument('--critical_corrupt',action='store',type=int,default=10)
+    parser.add_argument('--critical_datanodes',action='store',type=int,default=2)
     parser.add_argument('--critical_missing',action='store',type=int,default=10)
     parser.add_argument('--critical_ureplicated',action='store',type=int,default=50)
     parser.add_argument('-v','--version', action='version', version='%(prog)s ' + version)
@@ -130,6 +132,7 @@ class Hdfs(nagiosplugin.Resource):
      
     def probe(self):
         yield nagiosplugin.Metric('used%',float(self.hdfsreport['Total']['DFS Used%'].replace('%','')),min=0 ,context = "used")
+        yield nagiosplugin.Metric('datanodes',int(self.hdfsreport['Total']['Datanodes available']),min=0 ,context = "datanodes")
         yield nagiosplugin.Metric('under_replication', int(self.hdfsreport['Total']['Under replicated blocks']), min = 0, context = "ureplicated")
         yield nagiosplugin.Metric('missing_blocks',int(self.hdfsreport['Total']['Missing blocks']),min=0 , context = "missing")
         yield nagiosplugin.Metric('corrupted_replicas',int(self.hdfsreport['Total']['Blocks with corrupt replicas']),min=0, context = "corrupt")
@@ -175,6 +178,10 @@ def main():
             args.warning_balanced,
             args.critical_balanced,
             fmt_metric='There are {value}% usage difference between datanodes'),
+        nagiosplugin.ScalarContext('datanodes',
+            args.warning_datanodes,
+            args.critical_datanodes,
+            fmt_metric='{value} living datanodes'), 
         HdfsSummary())
     check.main()
     if auth_token: auth_token.destroy() 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim: ts=4:sw=4:et:sts=4:ai:tw=80
 from requests_kerberos import HTTPKerberosAuth
-from krb_wrapper import krb_wrapper
+from utils import krb_wrapper
 import os
 import argparse
 import requests

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim: ts=4:sw=4:et:sts=4:ai:tw=80
 from requests_kerberos import HTTPKerberosAuth
-from krb_wrapper import krb_wrapper
+from utils import krb_wrapper,StringContext
 from nagiosplugin.state import Ok, Warn, Critical
 import os
 import argparse
@@ -43,22 +43,6 @@ def parser():
     if args.type is None and args.owner is None and args.group is None and args.permission is None and not args.writable:
         parser.error("At least one check is required")
     return args
-
-class StringContext(nagiosplugin.Context):
-    def __init__(self, name,value,level="critical",fmt_metric=None, result_cls=nagiosplugin.Result):
-        super(StringContext, self).__init__(name, fmt_metric, result_cls)
-        self.value=value
-        self.level=level
-
-    def evaluate(self, metric, resource):
-        if self.value == metric.value:
-            return self.result_cls(Ok,hint=metric.description,metric=metric)
-        else:
-            if self.level == "critical":
-                return self.result_cls(Critical,hint=metric.description,metric=metric)
-            else:
-                return self.result_cls(Warn,hint=metric.description,metric=metric)
-
 
 class Httpfs(nagiosplugin.Resource):
     """

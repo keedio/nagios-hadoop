@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim: ts=4:sw=4:et:sts=4:ai:tw=80
 from requests_kerberos import HTTPKerberosAuth
-from utils import krb_wrapper
+from utils import krb_wrapper,StringContext
 import os
 import argparse
 import requests
@@ -19,18 +19,18 @@ def parser():
     parser.add_argument('-s', '--secure',action='store_true')
     parser.add_argument('-k', '--keytab',action='store')
     parser.add_argument('--cache_file',action='store', default='/tmp/nagios.krb')
+    parser.add_argument('-nn','--namenodes',action='store')
     parser.add_argument('--warning_used',action='store', type=float,default=70.00)
     parser.add_argument('--warning_blocks',action='store', type=int,default=250000)
     parser.add_argument('--warning_balanced',action='store',type=float,default=5.00)
     parser.add_argument('--warning_corrupt',action='store',type=int,default=0)
-    parser.add_argument('--warning_datanodes',action='store',type=int,default=4)
     parser.add_argument('--warning_missing',action='store',type=int,default=0)
     parser.add_argument('--warning_ureplicated',action='store',type=int,default=20)
     parser.add_argument('--critical_used',action='store', type=float,default=85)
     parser.add_argument('--critical_blocks',action='store', type=int,default=350000)
     parser.add_argument('--critical_balanced',action='store',type=float,default=10.00)
     parser.add_argument('--critical_corrupt',action='store',type=int,default=10)
-    parser.add_argument('--critical_datanodes',action='store',type=int,default=2)
+    parser.add_argument('--critical_datanodes',action='store',type=int,default=3)
     parser.add_argument('--critical_missing',action='store',type=int,default=10)
     parser.add_argument('--critical_ureplicated',action='store',type=int,default=50)
     parser.add_argument('-v','--version', action='version', version='%(prog)s ' + version)
@@ -122,15 +122,32 @@ class Hdfs(nagiosplugin.Resource):
                     min = used
         return max-min
 
-    def __init__(self,html_auth):
+    def getNamenodesRol(self,namenodes):
+        namenodes_rol=dict()
+        for namenode in namenodes.split(','):
+            instance = namenode.split('.')[0]
+            p = subprocess.Popen(['hdfs','haadmin','-getServiceState',instance],stdout=subprocess.PIPE)
+            output,err = p.communicate()
+            if err is None:
+                namenodes_rol[namenode]=output.rstrip()
+            else:
+                namenodes_rol[namenode]=err
+        return namenodes_rol
+
+
+
+    def __init__(self,html_auth,namenodes):
         self.html_auth = html_auth
         status,self.hdfsreport = self.parser_hdfsreport()
         for datanode in self.hdfsreport.keys():
             if datanode != 'Total':
                 port = self.hdfsreport[datanode]['Name'].split(':')[1]
                 self.hdfsreport[datanode]['blockscanner']=self.blockscanner(datanode,port)
+        self.namenodes=self.getNamenodesRol(namenodes)
      
     def probe(self):
+        yield nagiosplugin.Metric('Active NN',sum([1 for nn in self.namenodes if self.namenodes[nn]=='active']),min=0 ,context ="active nn")
+        yield nagiosplugin.Metric('Standby NN',sum([1 for nn in self.namenodes if self.namenodes[nn]=='standby']),min=0 ,context ="standby nn")
         yield nagiosplugin.Metric('used%',float(self.hdfsreport['Total']['DFS Used%'].replace('%','')),min=0 ,context = "used")
         yield nagiosplugin.Metric('datanodes',int(self.hdfsreport['Total']['Datanodes available']),min=0 ,context = "datanodes")
         yield nagiosplugin.Metric('under_replication', int(self.hdfsreport['Total']['Under replicated blocks']), min = 0, context = "ureplicated")
@@ -153,7 +170,13 @@ def main():
         html_auth=HTTPKerberosAuth()
         auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
         os.environ['KRB5CCNAME'] = args.cache_file
-    check = nagiosplugin.Check(Hdfs(html_auth),
+    check = nagiosplugin.Check(Hdfs(html_auth,args.namenodes),
+        StringContext('active nn',
+            1,
+            fmt_metric='{value} active namenodes'),
+        StringContext('standby nn',
+            len(args.namenodes.split(','))-1,
+            fmt_metric='{value} standby namenodes'),
         nagiosplugin.ScalarContext('used',
             args.warning_used,
             args.critical_used,
@@ -178,8 +201,7 @@ def main():
             args.warning_balanced,
             args.critical_balanced,
             fmt_metric='There are {value}% usage difference between datanodes'),
-        nagiosplugin.ScalarContext('datanodes',
-            args.warning_datanodes,
+        StringContext('datanodes',
             args.critical_datanodes,
             fmt_metric='{value} living datanodes'), 
         HdfsSummary())

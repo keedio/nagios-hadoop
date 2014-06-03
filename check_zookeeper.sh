@@ -16,7 +16,7 @@ OPTIONS:
    -K      Keytab to use for kerberos credentials
    -P      Principal to use for kerberos credentials
    -s      Kerberized zookeeper
-   -t      Test type, can be '' or ''
+   -t      Test type, can be 'hbase' or 'hdfs'
 EOF
 }
 

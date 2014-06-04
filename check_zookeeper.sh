@@ -33,7 +33,7 @@ KEYTAB=
 SERVER=
 TEST=
 
-HBASE_ZNODES=('/hbase/master 1' '/hbase/backup-masters 1' '/hbase/meta-region-server 1' '/hbase/unassigned 0')
+HBASE=('/hbase/master 1' '/hbase/backup-masters 1' '/hbase/meta-region-server 1' '/hbase/unassigned 0')
 HDFS=('/hadoop-ha/hdfscluster/ActiveStandbyElectorLock 1')
 
 
@@ -148,17 +148,18 @@ main(){
         resume "$code" "$msg"
     else
         case "$TEST" in
-            "hbase")
-                for i in `seq 0 $(( ${#HBASE_ZNODES[@]} - 1 ))`; do
-                    val=$(check_znode_exists ${HBASE_ZNODES[$i]})
-                    eval $val
-                    [[ $code -ne 0 ]] && break
-                done
-                ;;
             "hdfs")
-                echo $TEST
+                files=("${HDFS[@]}")
+                ;;
+            "hbase")
+                files=("${HBASE[@]}")
                 ;;
         esac
+        for file in "${files[@]}"; do
+            val=$(check_znode_exists $file)
+            eval $val
+            [[ $code -ne 0 ]] && break
+        done
     fi
     [[ $SECURE ]] && kdestroy -c $CACHE_FILE && export KRB5CCNAME=$CACHE_FILE_ORIG
     resume "$code" "$msg"

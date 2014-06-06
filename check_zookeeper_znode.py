@@ -83,12 +83,6 @@ class ZookeeperZnode(nagiosplugin.Resource):
         for topic in topics:
             output,err=self.call_zk('get','/brokers/topics/%s' % topic)
             topics_parsed[topic]=ast.literal_eval(output)
-            #output,err=self.call_zk('ls','/brokers/topics/%s/partitions' % topic)
-            #partitions=ast.literal_eval(self.call_zk('ls','/brokers/topics/%s/partitions' % topic)[0])
-            #partitions_parsed=dict()
-            #for partition in partitions:
-            #    partitions_parsed[partition]=ast.literal_eval(self.call_zk('get','/brokers/topics/%s/partitions/%d/state' % (topic,partition))[0])
-            #topics_parsed[topic]=partitions_parsed
         return topics_parsed,ids_parsed
         
 @nagiosplugin.guarded

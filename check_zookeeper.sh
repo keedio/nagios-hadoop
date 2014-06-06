@@ -141,7 +141,7 @@ check_znode_exists(){
 
 main(){
     parser $@
-    [[ $SECURE ]] && CACHE_FILE_ORIG=$KRB5CCNAME && export KRB5CCNAME=$CACHE_FILE
+    [[ $SECURE == "true" ]] && CACHE_FILE_ORIG=$KRB5CCNAME && export KRB5CCNAME=$CACHE_FILE
     auth_res=$(auth)
     eval $auth_res
     if [[ $code -ne 0 ]]; then
@@ -161,7 +161,7 @@ main(){
             [[ $code -ne 0 ]] && break
         done
     fi
-    [[ $SECURE ]] && kdestroy -c $CACHE_FILE && export KRB5CCNAME=$CACHE_FILE_ORIG
+    [[ $SECURE == "true" ]] && kdestroy -c $CACHE_FILE && export KRB5CCNAME=$CACHE_FILE_ORIG
     resume "$code" "$msg"
 }
 

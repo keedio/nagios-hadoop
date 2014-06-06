@@ -61,10 +61,10 @@ class ZookeeperZnode(nagiosplugin.Resource):
         metrics=[]
         self.topics,self.kafka_servers=self.get_kafka_state()
         for k_topic,v_topic in self.topics.iteritems():
-            for k_partition,v_partition in v_topic.iteritems():
+            for k_partition,v_partition in v_topic['partitions'].iteritems():
                 all_sync=True
                 for host in self.kafka_servers:
-                    all_sync = False if not host in v_partition['isr'] else all_sync
+                    all_sync = False if not host in v_partition else all_sync
                 metrics.append(nagiosplugin.Metric('Topic %s partition %s in sync' % (k_topic, k_partition),all_sync,context='true'))
         return metrics
 
@@ -81,12 +81,14 @@ class ZookeeperZnode(nagiosplugin.Resource):
             topics=output.replace('[','').replace(']','').replace(',',' ').split()
         topics_parsed=dict()
         for topic in topics:
-            output,err=self.call_zk('ls','/brokers/topics/%s/partitions' % topic)
-            partitions=ast.literal_eval(self.call_zk('ls','/brokers/topics/%s/partitions' % topic)[0])
-            partitions_parsed=dict()
-            for partition in partitions:
-                partitions_parsed[partition]=ast.literal_eval(self.call_zk('get','/brokers/topics/%s/partitions/%d/state' % (topic,partition))[0])
-            topics_parsed[topic]=partitions_parsed
+            output,err=self.call_zk('get','/brokers/topics/%s' % topic)
+            topics_parsed[topic]=ast.literal_eval(output)
+            #output,err=self.call_zk('ls','/brokers/topics/%s/partitions' % topic)
+            #partitions=ast.literal_eval(self.call_zk('ls','/brokers/topics/%s/partitions' % topic)[0])
+            #partitions_parsed=dict()
+            #for partition in partitions:
+            #    partitions_parsed[partition]=ast.literal_eval(self.call_zk('get','/brokers/topics/%s/partitions/%d/state' % (topic,partition))[0])
+            #topics_parsed[topic]=partitions_parsed
         return topics_parsed,ids_parsed
         
 @nagiosplugin.guarded

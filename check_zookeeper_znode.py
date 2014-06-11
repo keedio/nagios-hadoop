@@ -16,6 +16,11 @@ def parser():
     parser.add_argument('-c','--cache_file',action='store',default='/tmp/nagios_zookeeper')
     parser.add_argument('-t','--test',action='store',required=True)
     parser.add_argument('-T','--topic',action='store')
+    parser.add_argument('--check_topics',action='store_true')
+    parser.add_argument('--warn_topics',action='store',default=50)
+    parser.add_argument('--crit_topics',action='store',default=100)
+    parser.add_argument('--warn_hosts',action='store',default='4:')
+    parser.add_argument('--crit_hosts',action='store',default='3:')
     parser.add_argument('-z','--zk_client',action='store',default='/usr/bin/zookeeper-client')
     args = parser.parse_args()
     if args.secure and (args.principal is None or args.keytab is None):
@@ -36,6 +41,7 @@ class ZookeeperZnode(nagiosplugin.Resource):
                 'hbase' : self.check_hbase,
                 'kafka' : self.check_kafka
         }
+        self.check_topics=args.check_topics
         self.topic=args.topic
 
     def probe(self):
@@ -60,12 +66,15 @@ class ZookeeperZnode(nagiosplugin.Resource):
     def check_kafka(self):
         metrics=[]
         self.topics,self.kafka_servers=self.get_kafka_state()
-        for k_topic,v_topic in self.topics.iteritems():
-            for k_partition,v_partition in v_topic['partitions'].iteritems():
-                all_sync=True
-                for host in self.kafka_servers:
-                    all_sync = False if not host in v_partition else all_sync
-                metrics.append(nagiosplugin.Metric('Topic %s partition %s in sync' % (k_topic, k_partition),all_sync,context='true'))
+        metrics.append(nagiosplugin.Metric('Total topics',len(self.topics.keys()),context='total_topics'))
+        metrics.append(nagiosplugin.Metric('Hosts',len(self.kafka_servers.keys()),context='hosts'))
+        if self.check_topics:
+            for k_topic,v_topic in self.topics.iteritems():
+                for k_partition,v_partition in v_topic['partitions'].iteritems():
+                    all_sync=True
+                    for host in v_partition:
+                        all_sync = False if not host in v_topic['isr'][k_partition] else all_sync
+                    metrics.append(nagiosplugin.Metric('Topic %s partition %s in sync' % (k_topic, k_partition),all_sync,context='true'))
         return metrics
 
     def get_kafka_state(self):
@@ -81,20 +90,31 @@ class ZookeeperZnode(nagiosplugin.Resource):
             topics=output.replace('[','').replace(']','').replace(',',' ').split()
         topics_parsed=dict()
         for topic in topics:
-            output,err=self.call_zk('get','/brokers/topics/%s' % topic)
-            topics_parsed[topic]=ast.literal_eval(output)
+            topics_parsed[topic]=dict()
+            if self.check_topics:
+                output,err=self.call_zk('get','/brokers/topics/%s' % topic)
+                topics_parsed[topic]['partitions']=ast.literal_eval(output)['partitions']
+                topics_parsed[topic]['isr']=dict()
+                for partition in topics_parsed[topic]['partitions'].keys():
+                    output=ast.literal_eval(self.call_zk('get','/brokers/topics/%s/partitions/%s/state' % (topic,partition))[0])
+                    topics_parsed[topic]['isr'][partition]=output['isr']
         return topics_parsed,ids_parsed
         
 @nagiosplugin.guarded
 def main():
+    timeout=10 # default
     args = parser()
     if args.secure:
         auth_token = krb_wrapper(args.principal, args.keytab,args.cache_file)
         os.environ['KRB5CCNAME'] = args.cache_file
     check = nagiosplugin.Check(ZookeeperZnode(args),
         StringContext('true',True),
-        StringContext('false',False))
-    check.main()
+        StringContext('false',False),
+        nagiosplugin.ScalarContext('total_topics',args.warn_topics,args.crit_topics),
+        nagiosplugin.ScalarContext('hosts',args.warn_hosts,args.crit_hosts))
+    if args.test == "kafka":
+        timeout=0
+    check.main(timeout=timeout)
     if args.secure: auth_token.destroy()
 
 if __name__ == '__main__':

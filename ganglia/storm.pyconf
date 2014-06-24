@@ -1,0 +1,24 @@
+modules {
+  module {
+    name = "stormganglia"
+    language = "python"
+    # The following params are examples only
+    #  They are not actually used by the temp module
+    #param RandomMax {
+    #  value = 600
+    #}
+    #param ConstantValue {
+    #  value = 112
+    #}
+  }
+}
+
+collection_group {
+  collect_every = 10
+  time_threshold = 50
+  metric {
+    name_match = '([a-zA-Z0-9_])+-([a-zA-Z_0-9]+)-([0-9])-[0-9]'
+    title = "Bolt \\1 \\2 \\3"
+    value_threshold = 100.0
+  }
+}

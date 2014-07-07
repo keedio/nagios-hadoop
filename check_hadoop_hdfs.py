@@ -10,7 +10,6 @@ import subprocess
 import nagiosplugin
 import logging
 
-html_auth = None
 
 def parser():
     version="0.1"
@@ -166,6 +165,7 @@ class HdfsSummary(nagiosplugin.Summary):
 @nagiosplugin.guarded
 def main():
     args = parser()
+    html_auth = None
     if args.secure:
         html_auth=HTTPKerberosAuth()
         auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)

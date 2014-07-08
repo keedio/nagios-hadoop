@@ -7,7 +7,6 @@ import nagiosplugin
 import re
 import subprocess
 
-html_auth = None
 
 def parser():
     version="0.1"
@@ -26,15 +25,19 @@ class Hbase(nagiosplugin.Resource):
 
     def __init__(self):
         p = subprocess.Popen(['hbase','hbck'],stdout=subprocess.PIPE,stderr=None)
-        output,err = p.communicate()
-        self.status=None
-        if err is None:
-            for line in output.splitlines():
-                m = re.match('^\s*Status\s*:\s*(?P<STATUS>\w+)\s*',line)
-                if m:
-                    self.status=m.group('STATUS')
-        else:
-            return 2,"Critical: "+err
+        try:
+            output,err = p.communicate(timeout=3)
+            self.status=None
+            if err is None:
+                for line in output.splitlines():
+                    m = re.match('^\s*Status\s*:\s*(?P<STATUS>\w+)\s*',line)
+                    if m:
+                        self.status=m.group('STATUS')
+            else:
+                return 2,"Critical: "+err
+        except subprocess.TimeoutExpired:
+            p.kill()
+            self.status="Timeout"
      
     def probe(self):
         yield nagiosplugin.Metric('status',self.status,context="status")

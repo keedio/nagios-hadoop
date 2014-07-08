@@ -12,7 +12,6 @@ import nagiosplugin
 import logging
 import ast
 
-html_auth = None
 
 def parser():
     version="0.1"
@@ -53,6 +52,7 @@ class Historyserver(nagiosplugin.Resource):
 
 @nagiosplugin.guarded
 def main():
+    html_auth = None
     args = parser()
     if args.secure:
         html_auth=HTTPKerberosAuth()

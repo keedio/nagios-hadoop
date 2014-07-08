@@ -33,7 +33,7 @@ def parser():
     parser.add_argument('--type',action='store')
     parser.add_argument('--owner',action='store')
     parser.add_argument('--group',action='store')
-    parser.add_argument('--permission',action='store',type=int)
+    parser.add_argument('--permission',action='store',type=str)
     parser.add_argument('--writable',action='store_true')
     parser.add_argument('--alert',action='store',default='critical')
     parser.add_argument('-v','--version', action='version', version='%(prog)s ' + version)

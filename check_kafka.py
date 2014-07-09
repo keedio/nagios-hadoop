@@ -4,7 +4,7 @@ from utils import StringContext,krb_wrapper
 import nagiosplugin
 import argparse
 import subprocess
-import re
+import  re
 
 def parser():
     version="0.1"

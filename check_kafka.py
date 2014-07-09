@@ -4,25 +4,33 @@ from utils import StringContext,krb_wrapper
 import nagiosplugin
 import argparse
 import subprocess
+import re
 
 def parser():
     version="0.1"
     parser = argparse.ArgumentParser(description="Check zookeeper znodes existence and content")
     parser.add_argument('-H','--hosts',action='store',required=True)
     parser.add_argument('-K','--kafka_list_bin',action='store',default='/usr/lib/kafka/bin/kafka-list-topic.sh')
-    parser.add_argument('-T','--topic',action='store')
+    parser.add_argument('-T','--topic',action='store',required=True)
     args = parser.parse_args()
     return args
 
 class KafkaTopics(nagiosplugin.Resource):
     def parse_topics(self,test):
-        response = subprocess.Popen([self.kafka_list_bin,'--zookeeper', self.zkserver,test],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        response = subprocess.Popen([self.kafka_list_bin,'--zookeeper', self.zkserver,test,'--topic', self.topic],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output,err = response.communicate()
-        return output,err
+	topics=""
+	for line in output.splitlines():
+	    m = re.match('\s*topic:\s+(?P<TOPIC>\w+)\s+partition:\s*(?P<PARTITION>\d+).*',line)
+	    if m:
+	        topics+=m.group('PARTITION') + " "
+        return topics,err
 
     def __init__(self,args):
         self.zkserver = args.hosts
         self.kafka_list_bin = args.kafka_list_bin
+	if args.topic:
+	    self.topic=args.topic
         self.get_status()
 
     def get_status(self):
@@ -30,17 +38,18 @@ class KafkaTopics(nagiosplugin.Resource):
         self.unavailable=self.parse_topics('--unavailable-partitions')[0]
 
     def probe(self):
-        yield nagiosplugin.Metric('under_replicated',self.under_replicated if self.under_replicated != "" else 'empty',context="empty")
-        yield nagiosplugin.Metric('unavailable',self.unavailable if self.unavailable !="" else 'empty',context="empty")
-        
+        yield nagiosplugin.Metric('under_replicated',self.under_replicated if self.under_replicated != "" else None,context="Under Replication")
+        yield nagiosplugin.Metric('unavailable',self.unavailable if self.unavailable !="" else None,context="Unavailability")
+
 @nagiosplugin.guarded
 def main():
-    timeout=10 # default
+    timeout=30 # default
     args = parser()
     check = nagiosplugin.Check(KafkaTopics(args),
-        StringContext('empty','empty'))
-    check.main(timeout=timeout)
-    if args.secure: auth_token.destroy()
+        StringContext('Under Replication',None,fmt_metric='{value} partitions are under replicated'),
+        StringContext('Unavailability',None ,fmt_metric='{value} are unavailables' )	)
+    check.main()
+    #if args.secure: auth_token.destroy()
 
 if __name__ == '__main__':
     main()

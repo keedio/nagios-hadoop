@@ -26,7 +26,7 @@ class Hbase(nagiosplugin.Resource):
     def __init__(self):
         p = subprocess.Popen(['hbase','hbck'],stdout=subprocess.PIPE,stderr=None)
         try:
-            output,err = p.communicate(timeout=3)
+            output,err = p.communicate(timeout=30)
             self.status=None
             if err is None:
                 for line in output.splitlines():

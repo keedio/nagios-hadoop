@@ -11,7 +11,6 @@ import ast
 import os
 import sys
 
-html_auth = None
 
 def parser():
     version="0.1"
@@ -33,16 +32,22 @@ def parser():
 
 class Journalnode():
     def getValues(self):
-        self.values=dict()
-        response = requests.get("http://" + self.journalnode + ":" + str(self.port) + "/jmx", auth=self.html_auth)
-        if response.ok:
-            for line in response.content.splitlines():
-                m = re.match('\s*"(?P<FIELD>(LastWrittenTxId)|(RpcProcessingTimeAvgTime))"\s*:\s*(?P<VAL>\d+)',line)
-                if m:
-                    self.values[m.group('FIELD')]=int(m.group('VAL'))
+        self.values={'LastWrittenTxId':-1,'RpcProcessingTimeAvgTime':-1}
+        try:
+            response = requests.get("http://" + self.journalnode + ":" + str(self.port) + "/jmx", auth=self.html_auth)
+            if response.ok:
+                for line in response.content.splitlines():
+                    m = re.match('\s*"(?P<FIELD>(LastWrittenTxId)|(RpcProcessingTimeAvgTime))"\s*:\s*(?P<VAL>\d+)',line)
+                    if m:
+                        self.values[m.group('FIELD')]=int(m.group('VAL'))
+            else:
+                self.error_msg=self.journalnode + ":" +str(response.status_code)
+        except Exception as ext:
+            self.error_msg=self.journalnode + ":" + str(ext)
 
     def __init__(self,html_auth,journal,port):
         self.html_auth = html_auth
+        self.error_msg = 'OK'
         self.journalnode=journal
         self.port=port
         self.getValues()
@@ -54,14 +59,19 @@ class QJM(nagiosplugin.Resource):
     def probe(self):
         minTxId=sys.maxint
         maxTxId=-sys.maxint-1
+        quorumNodes=0
         for journal in self.qjm:
-            yield nagiosplugin.Metric('%s AVG Processing Time' % journal.get('host'),journal.get('journalState').values['RpcProcessingTimeAvgTime'],context="processing")
-            txId=journal.get('journalState').values['LastWrittenTxId']
-            if txId > maxTxId:
-                maxTxId = txId
-            if txId < minTxId:
-                minTxId = txId
+            yield nagiosplugin.Metric('%s Connection status ' % journal.get('host'),journal.get('journalState').error_msg,context='connection')
+            if journal.get('journalState').error_msg == "OK":
+                quorumNodes+=1
+                yield nagiosplugin.Metric('%s AVG Processing Time' % journal.get('host'),journal.get('journalState').values['RpcProcessingTimeAvgTime'],context="processing")
+                txId=journal.get('journalState').values['LastWrittenTxId']
+                if txId > maxTxId:
+                    maxTxId = txId
+                if txId < minTxId:
+                    minTxId = txId
         yield nagiosplugin.Metric('Sync',maxTxId-minTxId,context="sync")
+        yield nagiosplugin.Metric('Available quorum nodes',quorumNodes,context="quorum")
 
 
 @nagiosplugin.guarded
@@ -78,7 +88,12 @@ def main():
             args.process_crit),
         nagiosplugin.ScalarContext('sync',
             args.sync_threshold_warn,
-            args.sync_threshold_crit))
+            args.sync_threshold_crit),
+        StringContext('connection',
+            "OK"),
+        nagiosplugin.ScalarContext('quorum',
+            nagiosplugin.Range("%s:" % str(len(args.qjm.split(','))/2)),
+            nagiosplugin.Range("%s:" % str(len(args.qjm.split(','))/2))))
     check.main()
     if auth_token: auth_token.destroy() 
 

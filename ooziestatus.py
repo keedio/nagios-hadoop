@@ -16,7 +16,6 @@ import requests
 import os
 import logging
 
-logging.basicConfig(filename='/var/log/ganglia.oozie.log',level=logging.DEBUG)
 
 class OozieStatus:
     api_url={
@@ -25,6 +24,8 @@ class OozieStatus:
     }
 
     def __init__(self,params):
+	self.log_file = params.get('log_file','ganglia.') 	
+	logging.basicConfig(filename='/var/log/' + self.log_file + 'oozie.log',level=logging.DEBUG)
         self.host = params.get('host','localhost')
         self.port = params.get('port','8080')
         self.secure = params.get('secure',False)

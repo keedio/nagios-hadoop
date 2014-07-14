@@ -62,6 +62,7 @@ class Httpfs(nagiosplugin.Resource):
     """
     def filescanner(self):
         self.filestatus=dict()
+        print "http://" + self.namenode + ':' + str(self.port) + "/webhdfs/v1" + self.path + "?op=" + op['status']
         response = requests.get("http://" + self.namenode + ':' + str(self.port) + "/webhdfs/v1" + self.path + "?op=" + op['status'] , auth=self.html_auth)
         if response.ok:
             self.filestatus = ast.literal_eval(response.content)['FileStatus']
@@ -74,8 +75,12 @@ class Httpfs(nagiosplugin.Resource):
             requests.delete("http://"+ self.namenode + ':' + str(50070) + "/webhdfs/v1" + self.path + "?op=" + op['delete'], auth=self.html_auth)
 
 
-    def __init__(self,html_auth,args):
-        self.html_auth = html_auth
+    def __init__(self,args):
+        self.html_auth = None
+        if args.secure:
+            self.html_auth=HTTPKerberosAuth()
+            auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
+            os.environ['KRB5CCNAME'] = args.cache_file
         self.namenode=args.namenode
         self.port=args.port
         self.path=args.path
@@ -87,6 +92,7 @@ class Httpfs(nagiosplugin.Resource):
         self.writable=args.writable
         if self.writable:
            self.checkWritable()
+        if auth_token: auth_token.destroy()
      
     def probe(self):
         if self.type is not None:
@@ -103,11 +109,7 @@ class Httpfs(nagiosplugin.Resource):
 @nagiosplugin.guarded
 def main():
     args = parser()
-    if args.secure:
-        html_auth=HTTPKerberosAuth()
-        auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
-        os.environ['KRB5CCNAME'] = args.cache_file
-    check = nagiosplugin.Check(Httpfs(html_auth,args),
+    check = nagiosplugin.Check(Httpfs(args),
         StringContext('type',
             args.type,
             fmt_metric=' is a {value}'),

@@ -53,8 +53,14 @@ class Journalnode():
         self.getValues()
 
 class QJM(nagiosplugin.Resource):
-    def __init__(self,html_auth,args):
+    def __init__(self,args):
+        html_auth = None
+        if args.secure:
+            html_auth=HTTPKerberosAuth()
+            auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
+            os.environ['KRB5CCNAME'] = args.cache_file
         self.qjm=[{'host':journal.split(':')[0], 'journalState':Journalnode(html_auth,journal.split(':')[0],journal.split(':')[1])} for journal in args.qjm.split(',')]
+        if auth_token: auth_token.destroy() 
 
     def probe(self):
         minTxId=sys.maxint
@@ -77,12 +83,7 @@ class QJM(nagiosplugin.Resource):
 @nagiosplugin.guarded
 def main():
     args = parser()
-    html_auth = None
-    if args.secure:
-        html_auth=HTTPKerberosAuth()
-        auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
-        os.environ['KRB5CCNAME'] = args.cache_file
-    check = nagiosplugin.Check(QJM(html_auth,args),
+    check = nagiosplugin.Check(QJM(args),
         nagiosplugin.ScalarContext('processing',
             args.process_warn,
             args.process_crit),
@@ -95,7 +96,6 @@ def main():
             nagiosplugin.Range("%s:" % str(len(args.qjm.split(','))/2)),
             nagiosplugin.Range("%s:" % str(len(args.qjm.split(','))/2))))
     check.main()
-    if auth_token: auth_token.destroy() 
 
 if __name__ == '__main__':
     main()

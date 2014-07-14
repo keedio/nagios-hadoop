@@ -19,8 +19,8 @@ def parser():
     parser.add_argument('--check_topics',action='store_true')
     parser.add_argument('--warn_topics',action='store',default=50)
     parser.add_argument('--crit_topics',action='store',default=100)
-    parser.add_argument('--warn_hosts',action='store',default='4:')
-    parser.add_argument('--crit_hosts',action='store',default='3:')
+    parser.add_argument('--warn_hosts',action='store',default='2:')
+    parser.add_argument('--crit_hosts',action='store',default='1:')
     parser.add_argument('-z','--zk_client',action='store',default='/usr/bin/zookeeper-client')
     args = parser.parse_args()
     if args.secure and (args.principal is None or args.keytab is None):
@@ -34,6 +34,9 @@ class ZookeeperZnode(nagiosplugin.Resource):
         return output.splitlines()[-1],err
 
     def __init__(self,args):
+        if args.secure:
+            auth_token = krb_wrapper(args.principal, args.keytab,args.cache_file)
+            os.environ['KRB5CCNAME'] = args.cache_file
         self.zkserver = args.hosts
         self.zk_client = args.zk_client
         self.test = args.test
@@ -43,6 +46,7 @@ class ZookeeperZnode(nagiosplugin.Resource):
         }
         self.check_topics=args.check_topics
         self.topic=args.topic
+	if auth_token: auth_token.destroy()
 
     def probe(self):
         return self.tests[self.test]()
@@ -104,9 +108,6 @@ class ZookeeperZnode(nagiosplugin.Resource):
 def main():
     timeout=10 # default
     args = parser()
-    if args.secure:
-        auth_token = krb_wrapper(args.principal, args.keytab,args.cache_file)
-        os.environ['KRB5CCNAME'] = args.cache_file
     check = nagiosplugin.Check(ZookeeperZnode(args),
         StringContext('true',True),
         StringContext('false',False),
@@ -115,7 +116,6 @@ def main():
     if args.test == "kafka":
         timeout=0
     check.main(timeout=timeout)
-    if args.secure: auth_token.destroy()
 
 if __name__ == '__main__':
     main()

@@ -23,7 +23,11 @@ def parser():
 
 class Hbase(nagiosplugin.Resource):
 
-    def __init__(self):
+    def __init__(self,args):
+        if args.secure:
+            auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
+            os.environ['KRB5CCNAME'] = args.cache_file
+ 
         p = subprocess.Popen(['hbase','hbck'],stdout=subprocess.PIPE,stderr=None)
         try:
             output,err = p.communicate(timeout=30)
@@ -38,6 +42,7 @@ class Hbase(nagiosplugin.Resource):
         except subprocess.TimeoutExpired:
             p.kill()
             self.status="Timeout"
+        if auth_token: auth_token.destroy()
      
     def probe(self):
         yield nagiosplugin.Metric('status',self.status,context="status")
@@ -45,14 +50,10 @@ class Hbase(nagiosplugin.Resource):
 @nagiosplugin.guarded
 def main():
     args = parser()
-    if args.secure:
-        auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
-        os.environ['KRB5CCNAME'] = args.cache_file
-    check = nagiosplugin.Check(Hbase(),
+    check = nagiosplugin.Check(Hbase(args),
         StringContext('status',
             'OK'))
     check.main()
-    if auth_token: auth_token.destroy() 
 
 if __name__ == '__main__':
     main()

@@ -12,7 +12,6 @@ import nagiosplugin
 import logging
 import ast
 
-
 def parser():
     version="0.1"
     parser = argparse.ArgumentParser(description="Check some yarn pieces like rm, or scheduler")
@@ -40,30 +39,29 @@ class Historyserver(nagiosplugin.Resource):
         else:
             self.hs_status['startedOn'] = -1
 
-    def __init__(self,html_auth,args):
+    def __init__(self,args):
+        self.html_auth = None
+        if args.secure:
+            self.html_auth=HTTPKerberosAuth()
+            auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
+            os.environ['KRB5CCNAME'] = args.cache_file
         self.historyserver = args.historyserver
         self.hs_port = args.hs_port
-        self.html_auth = html_auth
         self.hs_status = dict()
         self.status()
+        if auth_token: auth_token.destroy() 
 
     def probe(self):
         yield nagiosplugin.Metric('History server',self.hs_status['startedOn'] >= 0 , context="hs_status")
 
 @nagiosplugin.guarded
 def main():
-    html_auth = None
     args = parser()
-    if args.secure:
-        html_auth=HTTPKerberosAuth()
-        auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
-        os.environ['KRB5CCNAME'] = args.cache_file
-    check = nagiosplugin.Check(Historyserver(html_auth,args),
+    check = nagiosplugin.Check(Historyserver(args),
         StringContext('hs_status',
             True))
     check.main()
         
-    if auth_token: auth_token.destroy() 
 
 if __name__ == '__main__':
     main()

@@ -135,14 +135,20 @@ class Hdfs(nagiosplugin.Resource):
 
 
 
-    def __init__(self,html_auth,namenodes):
-        self.html_auth = html_auth
+    def __init__(self,args):
+        self.html_auth = None
+        if args.secure:
+            self.html_auth=HTTPKerberosAuth()
+            auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
+            os.environ['KRB5CCNAME'] = args.cache_file
         status,self.hdfsreport = self.parser_hdfsreport()
-        for datanode in self.hdfsreport.keys():
-            if datanode != 'Total':
-                port = self.hdfsreport[datanode]['Name'].split(':')[1]
-                self.hdfsreport[datanode]['blockscanner']=self.blockscanner(datanode,port)
-        self.namenodes=self.getNamenodesRol(namenodes)
+        if status ==0:
+            for datanode in self.hdfsreport.keys():
+                if datanode != 'Total':
+                    port = self.hdfsreport[datanode]['Name'].split(':')[1]
+                    self.hdfsreport[datanode]['blockscanner']=self.blockscanner(datanode,port)
+            self.namenodes=self.getNamenodesRol(args.namenodes)
+        if auth_token: auth_token.destroy() 
      
     def probe(self):
         yield nagiosplugin.Metric('Active NN',sum([1 for nn in self.namenodes if self.namenodes[nn]=='active']),min=0 ,context ="active nn")
@@ -165,12 +171,7 @@ class HdfsSummary(nagiosplugin.Summary):
 @nagiosplugin.guarded
 def main():
     args = parser()
-    html_auth = None
-    if args.secure:
-        html_auth=HTTPKerberosAuth()
-        auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
-        os.environ['KRB5CCNAME'] = args.cache_file
-    check = nagiosplugin.Check(Hdfs(html_auth,args.namenodes),
+    check = nagiosplugin.Check(Hdfs(args),
         StringContext('active nn',
             1,
             fmt_metric='{value} active namenodes'),
@@ -206,7 +207,6 @@ def main():
             fmt_metric='{value} living datanodes'), 
         HdfsSummary())
     check.main()
-    if auth_token: auth_token.destroy() 
 
 if __name__ == '__main__':
     main()

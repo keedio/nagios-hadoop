@@ -12,8 +12,6 @@ import nagiosplugin
 import logging
 import ast
 
-html_auth = None
-
 def parser():
     version="0.1"
     parser = argparse.ArgumentParser(description="Check some yarn pieces like rm, or scheduler")
@@ -59,8 +57,12 @@ class Resourcemanager(nagiosplugin.Resource):
             self.clusternodes=ast.literal_eval(response.content)['nodes']['node']
         # It is possible to request /schedulers but I didn't find any useful information for alerts
 
-    def __init__(self,html_auth,args):
-        self.html_auth = html_auth
+    def __init__(self,args):
+	self.html_auth = None
+        if args.secure:
+            self.html_auth=HTTPKerberosAuth()
+            auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
+	    os.environ['KRB5CCNAME'] = args.cache_file
         self.rm=args.rm
         self.port=args.port
         
@@ -68,7 +70,7 @@ class Resourcemanager(nagiosplugin.Resource):
         self.clustermetrics=dict()
         self.clusternodes=[]
         self.status()
-
+	if auth_token: auth_token.destroy()
      
     def probe(self):
         yield nagiosplugin.Metric('RM Status',self.clusterinfo['state'],context="state")
@@ -82,11 +84,7 @@ class Resourcemanager(nagiosplugin.Resource):
 @nagiosplugin.guarded
 def main():
     args = parser()
-    if args.secure:
-        html_auth=HTTPKerberosAuth()
-        auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
-        os.environ['KRB5CCNAME'] = args.cache_file
-    check = nagiosplugin.Check(Resourcemanager(html_auth,args),
+    check = nagiosplugin.Check(Resourcemanager(args),
         StringContext('state',
             'STARTED'),
         StringContext('nodeState',
@@ -104,7 +102,6 @@ def main():
             args.apps_warn,
             args.apps_crit))
     check.main()
-    if auth_token: auth_token.destroy() 
 
 if __name__ == '__main__':
     main()

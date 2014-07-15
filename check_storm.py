@@ -8,6 +8,7 @@ import stormStatus
 import nagiosplugin
 import argparse
 import subprocess
+import utils
 
 def parser():
     version="0.1"
@@ -28,7 +29,11 @@ def parser():
 
 class StormTopology(stormStatus.StormStatus,nagiosplugin.Resource):
     def probe(self):    
+	yield nagiosplugin.Metric('Nimbus connected', self.nimbus_connected, context = 'connected')
         for topology in self.topologies_to_check:
+	    yield nagiosplugin.Metric('Topology %s connected' % topology, 
+		self.topologies[topology]['connected'],
+		context = 'connected')
             for component_key, component_value in self.topologies[topology]['components'].iteritems():
                 if component_value['bolts']:
                     for status in component_value['bolts']:
@@ -47,6 +52,9 @@ def main():
     timeout=10 # default
     args = parser()
     check = nagiosplugin.Check(StormTopology(args),
+	utils.StringContext('connected',
+	    True,
+	    fmt_metric='Connection status: {value}'),
         nagiosplugin.ScalarContext('1d load',
             args.load_1d_warn,
             args.load_1d_crit),

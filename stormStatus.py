@@ -13,6 +13,7 @@ from storm.constants import *
 
 class StormStatus:
     def __init__(self,args):
+	self.nimbus_connected = False
         self.nimbus_serv=args.nimbus_serv
         self.nimbus_port=args.nimbus_port
         self.topology=args.topology
@@ -38,7 +39,8 @@ class StormStatus:
             
             transport.close()
             for topology in summary.topologies:
-                self.topologies[str(topology.name)]={'id':topology.id,'components':{}}
+                self.topologies[str(topology.name)]={'id':topology.id,'components':{},'connected':False}
+	    self.nimbus_connected = True
 
         except Thrift.TException, tx:
             print "%s" % (tx.message)
@@ -63,6 +65,7 @@ class StormStatus:
                     self.topologies[topology]['components'][component]['bolts'].append({ 
                         'id':str(task_start) + '-' + str(task_end),
                         'stats' : self.boltToDict(bolt_stats)})
+	    self.topologies[topology]['connected'] = True
         except Thrift.TException, tx:
             print "%s" % (tx.message)
 

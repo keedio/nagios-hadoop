@@ -10,9 +10,9 @@ def parser():
     version="0.1"
     parser = argparse.ArgumentParser(description="Check zookeeper servers")
     parser.add_argument('-H','--hosts',action='store',required=True)
-    parser.add_argument('-lw','--latency_warning',action='store',required=True,default=500)
-    parser.add_argument('-lc','--latency_critical',action='store',required=True,default=1000)
-    parser.add_argument('-v','--version', action='store', required=True)
+    parser.add_argument('-lw','--latency_warning',action='store',default=500)
+    parser.add_argument('-lc','--latency_critical',action='store',default=1000)
+    parser.add_argument('-v','--version', action='store', default="3.4.5")
     args = parser.parse_args()
     return args
 
@@ -66,19 +66,22 @@ class Zookeeper(nagiosplugin.Resource):
 @nagiosplugin.guarded
 def main():
     args = parser()
-    print args.latency_warning,args.latency_critical
     check = nagiosplugin.Check(Zookeeper(args.hosts),
         StringContext('running',
-            True),
+            True,
+	    fmt_metric='ZK Server running {value}'),
         StringContext('writable',
-            True),
+            True,
+	    fmt_metric='Path writable {value}'),
         StringContext('version',
-            args.version),
+            args.version,
+	    fmt_metric='Runnng version is {value}'),
         nagiosplugin.ScalarContext('latency',
             args.latency_warning,
             args.latency_critical),
         StringContext('mode',
-            '1/%d' % (len(args.hosts.split(',')) - 1)))
+            '1/%d' % (len(args.hosts.split(',')) - 1),
+	    fmt_metric='leader/followers {value}'))
     check.main()
 
 if __name__ == '__main__':

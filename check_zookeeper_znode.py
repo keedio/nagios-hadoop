@@ -66,7 +66,7 @@ class ZookeeperZnode(nagiosplugin.Resource):
         }
         self.check_topics=args.check_topics
         self.topic=args.topic
-	if auth_token: auth_token.destroy()
+	if args.secure and auth_token: auth_token.destroy()
 
     def probe(self):
         return self.tests[self.test]()

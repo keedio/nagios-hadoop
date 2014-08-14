@@ -37,6 +37,7 @@ def parser():
     parser.add_argument('-p', '--principal', action='store', dest='principal')
     parser.add_argument('-s', '--secure',action='store_true')
     parser.add_argument('-k', '--keytab',action='store')
+    parser.add_argument('--datanode_port',action='store',type=int,default=50075)
     parser.add_argument('--cache_file',action='store', default='/tmp/nagios.krb')
     parser.add_argument('-nn','--namenodes',action='store')
     parser.add_argument('--warning_used',action='store', type=float,default=70.00)
@@ -122,7 +123,7 @@ class Hdfs(nagiosplugin.Resource):
     """
     def blockscanner(self,datanode,port):
         blockscanner=dict()
-        output = requests.get("http://" + datanode + ':' + str(1006) + "/blockScannerReport", auth=self.html_auth)
+        output = requests.get("http://" + datanode + ':' + str(port) + "/blockScannerReport", auth=self.html_auth)
         for line in output.content.splitlines():
             m = re.match('^(\w+(\s\w+)*)\s*:\s*(\d*)$',line)
             if m:
@@ -144,8 +145,7 @@ class Hdfs(nagiosplugin.Resource):
     def getNamenodesRol(self,namenodes):
         namenodes_rol=dict()
         for namenode in namenodes.split(','):
-            instance = namenode.split('.')[0]
-            p = subprocess.Popen(['hdfs','haadmin','-getServiceState',instance],stdout=subprocess.PIPE)
+            p = subprocess.Popen(['hdfs','haadmin','-getServiceState',namenode],stdout=subprocess.PIPE)
             output,err = p.communicate()
             if err is None:
                 namenodes_rol[namenode]=output.rstrip()
@@ -157,6 +157,7 @@ class Hdfs(nagiosplugin.Resource):
 
     def __init__(self,args):
         self.html_auth = None
+        self.datanode_port=args.datanode_port
         if args.secure:
             self.html_auth=HTTPKerberosAuth()
             auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
@@ -165,8 +166,8 @@ class Hdfs(nagiosplugin.Resource):
         if status ==0:
             for datanode in self.hdfsreport.keys():
                 if datanode != 'Total':
-                    port = self.hdfsreport[datanode]['Name'].split(':')[1]
-                    self.hdfsreport[datanode]['blockscanner']=self.blockscanner(datanode,port)
+                    # port = self.hdfsreport[datanode]['Name'].split(':')[1]
+                    self.hdfsreport[datanode]['blockscanner']=self.blockscanner(datanode,self.datanode_port)
             self.namenodes=self.getNamenodesRol(args.namenodes)
         if args.secure and auth_token: auth_token.destroy() 
      

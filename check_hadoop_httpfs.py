@@ -112,7 +112,7 @@ class Httpfs(nagiosplugin.Resource):
         self.writable=args.writable
         if self.writable:
            self.checkWritable()
-        if auth_token: auth_token.destroy()
+        if args.secure and auth_token: auth_token.destroy()
      
     def probe(self):
         if self.type is not None:
@@ -146,7 +146,6 @@ def main():
             True,
             fmt_metric='HTTPFS writable: {value}'))     
     check.main()
-    if auth_token: auth_token.destroy() 
 
 if __name__ == '__main__':
     main()

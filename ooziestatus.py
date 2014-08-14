@@ -61,7 +61,7 @@ class OozieStatus:
             auth_token = krb_wrapper(self.principal,self.keytab,self.cache_file)
             os.environ['KRB5CCNAME'] = self.cache_file
         self.coordinators = self.get_coordinators()
-        if auth_token: auth_token.destroy()
+        if self.secure and auth_token: auth_token.destroy()
 
     def get_coordinators(self):
         coordinators = {}

@@ -168,7 +168,7 @@ class Hdfs(nagiosplugin.Resource):
                     port = self.hdfsreport[datanode]['Name'].split(':')[1]
                     self.hdfsreport[datanode]['blockscanner']=self.blockscanner(datanode,port)
             self.namenodes=self.getNamenodesRol(args.namenodes)
-        if auth_token: auth_token.destroy() 
+        if args.secure and auth_token: auth_token.destroy() 
      
     def probe(self):
         yield nagiosplugin.Metric('Active NN',sum([1 for nn in self.namenodes if self.namenodes[nn]=='active']),min=0 ,context ="active nn")

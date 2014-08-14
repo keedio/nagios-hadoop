@@ -69,7 +69,7 @@ class Historyserver(nagiosplugin.Resource):
         self.hs_port = args.hs_port
         self.hs_status = dict()
         self.status()
-        if auth_token: auth_token.destroy() 
+        if args.secure and auth_token: auth_token.destroy() 
 
     def probe(self):
         yield nagiosplugin.Metric('History server',self.hs_status['startedOn'] >= 0 , context="hs_status")

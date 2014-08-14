@@ -62,7 +62,7 @@ class Hbase(nagiosplugin.Resource):
         except subprocess.TimeoutExpired:
             p.kill()
             self.status="Timeout"
-        if auth_token: auth_token.destroy()
+        if args.secure and auth_token: auth_token.destroy()
      
     def probe(self):
         yield nagiosplugin.Metric('status',self.status,context="status")

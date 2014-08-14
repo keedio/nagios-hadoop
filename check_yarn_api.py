@@ -90,7 +90,7 @@ class Resourcemanager(nagiosplugin.Resource):
         self.clustermetrics=dict()
         self.clusternodes=[]
         self.status()
-	if auth_token: auth_token.destroy()
+	if args.secure and auth_token: auth_token.destroy()
      
     def probe(self):
         yield nagiosplugin.Metric('RM Status',self.clusterinfo['state'],context="state")

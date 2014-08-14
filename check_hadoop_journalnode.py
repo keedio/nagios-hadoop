@@ -80,7 +80,7 @@ class QJM(nagiosplugin.Resource):
             auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
             os.environ['KRB5CCNAME'] = args.cache_file
         self.qjm=[{'host':journal.split(':')[0], 'journalState':Journalnode(html_auth,journal.split(':')[0],journal.split(':')[1])} for journal in args.qjm.split(',')]
-        if auth_token: auth_token.destroy() 
+        if args.secure and auth_token: auth_token.destroy() 
 
     def probe(self):
         minTxId=sys.maxint

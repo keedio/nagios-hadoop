@@ -36,6 +36,7 @@ def parser():
     parser.add_argument('-c','--cache_file',action='store',default='/tmp/nagios_zookeeper')
     parser.add_argument('-t','--test',action='store',required=True)
     parser.add_argument('-T','--topic',action='store')
+    parser.add_argument('--hdfs_cluster_name',action='store')
     parser.add_argument('--check_topics',action='store_true')
     parser.add_argument('--warn_topics',action='store',default=50)
     parser.add_argument('--crit_topics',action='store',default=100)
@@ -45,6 +46,8 @@ def parser():
     args = parser.parse_args()
     if args.secure and (args.principal is None or args.keytab is None):
         parser.error('If secure cluster, both of --principal and --keytab required')
+    if args.test == 'hdfs' and args.hdfs_cluster_name is None:
+        parser.error('If checking hdfs --hdfs_cluster_ name is required')
     return args
 
 class ZookeeperZnode(nagiosplugin.Resource):
@@ -60,6 +63,7 @@ class ZookeeperZnode(nagiosplugin.Resource):
         self.zkserver = args.hosts
         self.zk_client = args.zk_client
         self.test = args.test
+        self.hdfs_cluster_name=args.hdfs_cluster_name
         self.tests = {'hdfs' : self.check_hdfs,
                 'hbase' : self.check_hbase,
                 'kafka' : self.check_kafka
@@ -79,7 +83,7 @@ class ZookeeperZnode(nagiosplugin.Resource):
             return False
 
     def check_hdfs(self):
-        return [nagiosplugin.Metric('ActiveNN lock', self.znode_exist('/hadoop-ha/hdfscluster/ActiveStandbyElectorLock'),context='true')]
+        return [nagiosplugin.Metric('ActiveNN lock', self.znode_exist('/hadoop-ha/' + self.hdfs_cluster_name + '/ActiveStandbyElectorLock'),context='true')]
 
     def check_hbase(self):
         return [ nagiosplugin.Metric('Hbase Master', self.znode_exist('/hbase/master'), context='true'),

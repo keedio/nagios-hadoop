@@ -38,8 +38,8 @@ def parser():
     parser.add_argument('-T','--topic',action='store')
     parser.add_argument('--hdfs_cluster_name',action='store')
     parser.add_argument('--check_topics',action='store_true')
-    parser.add_argument('--warn_topics',action='store',default=50)
-    parser.add_argument('--crit_topics',action='store',default=100)
+    parser.add_argument('--warn_topics',action='store',default='1:50')
+    parser.add_argument('--crit_topics',action='store',default='1:100')
     parser.add_argument('--warn_hosts',action='store',default='2:')
     parser.add_argument('--crit_hosts',action='store',default='1:')
     parser.add_argument('-z','--zk_client',action='store',default='/usr/bin/zookeeper-client')
@@ -109,23 +109,24 @@ class ZookeeperZnode(nagiosplugin.Resource):
         output,err=self.call_zk('ls','/brokers/ids')
         ids=ast.literal_eval(output)
         ids_parsed=dict()
+        topics_parsed=dict()
         for host in ids:
             ids_parsed[host]=ast.literal_eval(self.call_zk('get','/brokers/ids/%d' % host)[0])
-        if self.topic is not None:
-            topics=[self.topic]
-        else:
-            output,err=self.call_zk('ls','/brokers/topics')
-            topics=output.replace('[','').replace(']','').replace(',',' ').split()
-        topics_parsed=dict()
-        for topic in topics:
-            topics_parsed[topic]=dict()
-            if self.check_topics:
-                output,err=self.call_zk('get','/brokers/topics/%s' % topic)
-                topics_parsed[topic]['partitions']=ast.literal_eval(output)['partitions']
-                topics_parsed[topic]['isr']=dict()
-                for partition in topics_parsed[topic]['partitions'].keys():
-                    output=ast.literal_eval(self.call_zk('get','/brokers/topics/%s/partitions/%s/state' % (topic,partition))[0])
-                    topics_parsed[topic]['isr'][partition]=output['isr']
+        if self.znode_exist('/brokers/topics'):
+            if self.topic is not None:
+                topics=[self.topic]
+            else:
+                output,err=self.call_zk('ls','/brokers/topics')
+                topics=output.replace('[','').replace(']','').replace(',',' ').split()
+            for topic in topics:
+                topics_parsed[topic]=dict()
+                if self.check_topics:
+                    output,err=self.call_zk('get','/brokers/topics/%s' % topic)
+                    topics_parsed[topic]['partitions']=ast.literal_eval(output)['partitions']
+                    topics_parsed[topic]['isr']=dict()
+                    for partition in topics_parsed[topic]['partitions'].keys():
+                        output=ast.literal_eval(self.call_zk('get','/brokers/topics/%s/partitions/%s/state' % (topic,partition))[0])
+                        topics_parsed[topic]['isr'][partition]=output['isr']
         return topics_parsed,ids_parsed
         
 @nagiosplugin.guarded

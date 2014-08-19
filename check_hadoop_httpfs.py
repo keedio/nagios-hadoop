@@ -46,6 +46,7 @@ def parser():
     parser.add_argument('-p', '--principal', action='store', dest='principal')
     parser.add_argument('-s', '--secure',action='store_true')
     parser.add_argument('-k', '--keytab',action='store')
+    parser.add_argument('--admin',action='store', default='hdfs')
     parser.add_argument('--cache_file',action='store', default='/tmp/nagios.krb')
     parser.add_argument('--namenode',action='store',default='localhost')
     parser.add_argument('--port',action='store',type=int,default=14000)
@@ -82,17 +83,16 @@ class Httpfs(nagiosplugin.Resource):
     """
     def filescanner(self):
         self.filestatus=dict()
-        print "http://" + self.namenode + ':' + str(self.port) + "/webhdfs/v1" + self.path + "?op=" + op['status']
-        response = requests.get("http://" + self.namenode + ':' + str(self.port) + "/webhdfs/v1" + self.path + "?op=" + op['status'] , auth=self.html_auth)
+        response = requests.get("http://" + self.namenode + ':' + str(self.port) + "/webhdfs/v1" + self.path + "?user.name=" + self.admin + "&op=" + op['status'] , auth=self.html_auth)
         if response.ok:
             self.filestatus = ast.literal_eval(response.content)['FileStatus']
 
     def checkWritable(self):
-        response = requests.put("http://" + self.namenode + ':' + str(50070) + "/webhdfs/v1" + self.path + "?op=" + op['create'] , auth=self.html_auth,allow_redirects=False)
-        response2=requests.put(response.headers['location'],auth=html_auth,data="TEST_DATA")
+        response = requests.put("http://" + self.namenode + ':' + str(self.port) + "/webhdfs/v1" + self.path + "?user.name=hdfs&op=" + op['create'] , auth=self.html_auth,allow_redirects=False)
+        response2=requests.put(response.headers['location'],headers={'content-type':'application/octet-stream'},auth=html_auth,data="TEST_DATA")
         self.filestatus['writable']=response2.ok
         if response2.ok:
-            requests.delete("http://"+ self.namenode + ':' + str(50070) + "/webhdfs/v1" + self.path + "?op=" + op['delete'], auth=self.html_auth)
+            requests.delete("http://"+ self.namenode + ':' + str(self.port) + "/webhdfs/v1" + self.path + "?user.name=" + self.admin +"&op=" + op['delete'], auth=self.html_auth)
 
 
     def __init__(self,args):
@@ -104,12 +104,13 @@ class Httpfs(nagiosplugin.Resource):
         self.namenode=args.namenode
         self.port=args.port
         self.path=args.path
-        self.filescanner()
         self.type=args.type
         self.owner=args.owner
         self.group=args.group
         self.permission=args.permission
         self.writable=args.writable
+	self.admin=args.admin
+        self.filescanner()
         if self.writable:
            self.checkWritable()
         if args.secure and auth_token: auth_token.destroy()

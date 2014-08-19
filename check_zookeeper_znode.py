@@ -39,7 +39,7 @@ def parser():
     parser.add_argument('--hdfs_cluster_name',action='store')
     parser.add_argument('--check_topics',action='store_true')
     parser.add_argument('--warn_topics',action='store',default='1:50')
-    parser.add_argument('--crit_topics',action='store',default='1:100')
+    parser.add_argument('--crit_topics',action='store',default='0:100')
     parser.add_argument('--warn_hosts',action='store',default='2:')
     parser.add_argument('--crit_hosts',action='store',default='1:')
     parser.add_argument('-z','--zk_client',action='store',default='/usr/bin/zookeeper-client')

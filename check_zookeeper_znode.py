@@ -109,7 +109,7 @@ class ZookeeperZnode(nagiosplugin.Resource):
         ids_parsed=dict()
         topics_parsed=dict()
         output,err=self.call_zk('ls','/brokers/ids')
-	if err is None:
+	if err is None or err is "":
             ids=ast.literal_eval(output)
             for host in ids:
                 ids_parsed[host]=ast.literal_eval(self.call_zk('get','/brokers/ids/%d' % host)[0])

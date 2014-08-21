@@ -1,2 +1,3 @@
 Defaults: nrpe !requiretty,!env_reset
 nrpe    ALL=(hdfs) NOPASSWD:/usr/lib64/nagios/plugins/check_hadoop_hdfs.py
+nrpe    ALL=(hbase) NOPASSWD:/usr/lib64/nagios/plugins/check_hbase.py

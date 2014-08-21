@@ -31,6 +31,7 @@ import subprocess
 import nagiosplugin
 import logging
 import ast
+import socket
 
 def parser():
     version="0.1"
@@ -65,7 +66,10 @@ class Historyserver(nagiosplugin.Resource):
             self.html_auth=HTTPKerberosAuth()
             auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
             os.environ['KRB5CCNAME'] = args.cache_file
-        self.historyserver = args.historyserver
+        if args.historyserver == 'localhost':
+            self.historyserver = socket.getfqdn()
+        else:
+            self.historyserver = args.historyserver
         self.hs_port = args.hs_port
         self.hs_status = dict()
         self.status()

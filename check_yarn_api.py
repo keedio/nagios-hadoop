@@ -31,6 +31,7 @@ import subprocess
 import nagiosplugin
 import logging
 import ast
+import socket
 
 def parser():
     version="0.1"
@@ -83,7 +84,10 @@ class Resourcemanager(nagiosplugin.Resource):
             self.html_auth=HTTPKerberosAuth()
             auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
 	    os.environ['KRB5CCNAME'] = args.cache_file
-        self.rm=args.rm
+	if args.rm == 'localhost':
+            self.rm=socket.getfqdn()
+        else:
+            self.rm=args.rm
         self.port=args.port
         
         self.clusterinfo=dict()

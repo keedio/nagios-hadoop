@@ -10,7 +10,9 @@ PRE-REQUISITES
     yum install python-requests-kerberos
     yum install python-argparse
     yum install python-storm
+    yum install python-pip
     easy_install thrift
+    eay_install nagios-plugin-elasticsearch
 
 To check storm is required python clases from sources
 

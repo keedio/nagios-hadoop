@@ -41,7 +41,7 @@ def parser():
     parser.add_argument('-v','--version', action='version', version='%(prog)s ' + version)
     parser.add_argument('-c','--critical', action='store', type=int, default=10)
     parser.add_argument('-w','--warning', action='store', type=int, default=10)
-    parser.add_argument('--log_file',action='store',default='nagios/')
+    parser.add_argument('--log_file',action='store',default='nrpe/')
     args = parser.parse_args()
     if args.secure and (args.principal is None or args.keytab is None):
         parser.error("if secure cluster, both of --principal and --keytab required")
@@ -70,6 +70,7 @@ class Oozie(nagiosplugin.Resource):
             self.coordinators=self.oozie_status.coordinators.keys()
  
     def probe(self):
+	yield nagiosplugin.Metric('Running OozieServers', len(self.coordinators), context="coordinators")
         for coord in self.coordinators:
             total = self.oozie_status.coordinators[coord]['total']
             if self.oozie_status.coordinators[coord].get('SUCCEEDED'):
@@ -81,7 +82,7 @@ class Oozie(nagiosplugin.Resource):
             else:
                 waiting = 0.0
             fails = 100.0 - success - waiting
-            yield nagiosplugin.Metric('Fails ' + coord, 100.0 ,context="errors") # - success - waiting,context="errors")
+            yield nagiosplugin.Metric('Fails ' + coord, fails ,context="errors") # - success - waiting,context="errors")
 
 @nagiosplugin.guarded
 def main():
@@ -90,7 +91,10 @@ def main():
     check = nagiosplugin.Check(Oozie(args),
         nagiosplugin.ScalarContext('errors',
             args.warning,
-            args.critical))
+            args.critical),
+	nagiosplugin.ScalarContext('coordinators',
+	    '1:',
+	    '1:'))
     check.main()
 
 if __name__ == '__main__':

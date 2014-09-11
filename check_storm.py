@@ -20,14 +20,10 @@
 #
 # AUTHOR: Juan Carlos Fernandez <jcfernandez@redoop.org>
 
-import sys
-
 import stormStatus
-
 import nagiosplugin
 import argparse
-import subprocess
-import utils
+import stringContext
 
 def parser():
     version="0.1"
@@ -71,7 +67,7 @@ def main():
     timeout=10 # default
     args = parser()
     check = nagiosplugin.Check(StormTopology(args),
-	utils.StringContext('connected',
+	stringContext.StringContext('connected',
 	    True,
 	    fmt_metric='Connection status: {value}'),
         nagiosplugin.ScalarContext('1d load',

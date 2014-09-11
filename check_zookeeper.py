@@ -20,7 +20,8 @@
 #
 # AUTHOR: Juan Carlos Fernandez <jcfernandez@redoop.org>
 
-from utils import netcat,StringContext
+import netcat
+import stringContext
 import re
 import argparse
 import nagiosplugin
@@ -42,7 +43,7 @@ class Zookeeper(nagiosplugin.Resource):
         version=""
         latency=""
         mode=""
-        status = netcat(host,int(port),'stat')
+        status = netcat.netcat(host,int(port),'stat')
         for line in status.splitlines():
             m = re.match('^Zookeeper version:\s*(?P<VERSION>.+)',line)
             if m:
@@ -60,8 +61,8 @@ class Zookeeper(nagiosplugin.Resource):
         for entry in self.hosts:
             host,port=entry.split(':')
             self.status[host]=dict()
-            self.status[host]['ok']=True if netcat(host,int(port),'ruok') == 'imok' else False
-            self.status[host]['rw']=True if netcat(host,int(port),'isro') == 'rw' else False
+            self.status[host]['ok']=True if netcat.netcat(host,int(port),'ruok') == 'imok' else False
+            self.status[host]['rw']=True if netcat.netcat(host,int(port),'isro') == 'rw' else False
             self.status[host]['version'],self.status[host]['mode'],self.status[host]['latency']=Zookeeper.get_status(host,port)
 
     def __init__(self,hosts):
@@ -87,19 +88,19 @@ class Zookeeper(nagiosplugin.Resource):
 def main():
     args = parser()
     check = nagiosplugin.Check(Zookeeper(args.hosts),
-        StringContext('running',
+        stringContext.StringContext('running',
             True,
 	    fmt_metric='ZK Server running {value}'),
-        StringContext('writable',
+        stringContext.StringContext('writable',
             True,
 	    fmt_metric='Path writable {value}'),
-        StringContext('version',
+        stringContext.StringContext('version',
             args.version,
 	    fmt_metric='Runnng version is {value}'),
         nagiosplugin.ScalarContext('latency',
             args.latency_warning,
             args.latency_critical),
-        StringContext('mode',
+        stringContext.StringContext('mode',
             '1/%d' % (len(args.hosts.split(',')) - 1),
 	    fmt_metric='leader/followers {value}'))
     check.main()

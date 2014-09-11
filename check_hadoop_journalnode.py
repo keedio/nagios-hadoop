@@ -21,7 +21,8 @@
 # AUTHOR: Juan Carlos Fernandez <jcfernandez@redoop.org>
 
 from requests_kerberos import HTTPKerberosAuth
-from utils import krb_wrapper,StringContext
+import kerberosWrapper
+import stringContext
 from nagiosplugin.state import Ok, Warn, Critical
 import argparse
 import requests
@@ -77,7 +78,7 @@ class QJM(nagiosplugin.Resource):
         html_auth = None
         if args.secure:
             html_auth=HTTPKerberosAuth()
-            auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
+            auth_token = kerberosWrapper.krb_wrapper(args.principal,args.keytab,args.cache_file)
             os.environ['KRB5CCNAME'] = args.cache_file
         self.qjm=[{'host':journal.split(':')[0], 'journalState':Journalnode(html_auth,journal.split(':')[0],journal.split(':')[1])} for journal in args.qjm.split(',')]
         if args.secure and auth_token: auth_token.destroy() 
@@ -110,7 +111,7 @@ def main():
         nagiosplugin.ScalarContext('sync',
             args.sync_threshold_warn,
             args.sync_threshold_crit),
-        StringContext('connection',
+        stringContext.StringContext('connection',
             "OK"),
         nagiosplugin.ScalarContext('quorum',
             nagiosplugin.Range("%s:" % str(len(args.qjm.split(','))/2)),

@@ -21,7 +21,8 @@
 # AUTHOR: Juan Carlos Fernandez <jcfernandez@redoop.org>
 
 from requests_kerberos import HTTPKerberosAuth
-from utils import krb_wrapper,StringContext
+import kerberosWrapper
+import stringContext
 from nagiosplugin.state import Ok, Warn, Critical
 import os
 import argparse
@@ -64,7 +65,7 @@ class Historyserver(nagiosplugin.Resource):
         self.html_auth = None
         if args.secure:
             self.html_auth=HTTPKerberosAuth()
-            auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
+            auth_token = kerberosWrapper.krb_wrapper(args.principal,args.keytab,args.cache_file)
             os.environ['KRB5CCNAME'] = args.cache_file
         if args.historyserver == 'localhost':
             self.historyserver = socket.getfqdn()
@@ -82,7 +83,7 @@ class Historyserver(nagiosplugin.Resource):
 def main():
     args = parser()
     check = nagiosplugin.Check(Historyserver(args),
-        StringContext('hs_status',
+        stringContext.StringContext('hs_status',
             True))
     check.main()
         

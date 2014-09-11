@@ -21,7 +21,8 @@
 # AUTHOR: Juan Carlos Fernandez <jcfernandez@redoop.org>
 
 from requests_kerberos import HTTPKerberosAuth
-from utils import krb_wrapper,StringContext
+import kerberosWrapper
+import stringContext
 import os
 import argparse
 import requests
@@ -160,7 +161,7 @@ class Hdfs(nagiosplugin.Resource):
         self.datanode_port=args.datanode_port
         if args.secure:
             self.html_auth=HTTPKerberosAuth()
-            auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
+            auth_token = kerberosWrapper.krb_wrapper(args.principal,args.keytab,args.cache_file)
             os.environ['KRB5CCNAME'] = args.cache_file
         status,self.hdfsreport = self.parser_hdfsreport()
         if status ==0:
@@ -193,10 +194,10 @@ class HdfsSummary(nagiosplugin.Summary):
 def main():
     args = parser()
     check = nagiosplugin.Check(Hdfs(args),
-        StringContext('active nn',
+        stringContext.StringContext('active nn',
             1,
             fmt_metric='{value} active namenodes'),
-        StringContext('standby nn',
+        stringContext.StringContext('standby nn',
             len(args.namenodes.split(','))-1,
             fmt_metric='{value} standby namenodes'),
         nagiosplugin.ScalarContext('used',
@@ -223,7 +224,7 @@ def main():
             args.warning_balanced,
             args.critical_balanced,
             fmt_metric='There are {value}% usage difference between datanodes'),
-        StringContext('datanodes',
+        stringContext.StringContext('datanodes',
             args.critical_datanodes,
             fmt_metric='{value} living datanodes'), 
         HdfsSummary())

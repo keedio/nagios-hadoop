@@ -21,8 +21,9 @@
 # AUTHOR: Juan Carlos Fernandez <jcfernandez@redoop.org>
 
 from requests_kerberos import HTTPKerberosAuth
-from utils import krb_wrapper,StringContext
 from nagiosplugin.state import Ok, Warn, Critical
+import kerberosWrapper
+import stringContext
 import os
 import argparse
 import requests
@@ -99,7 +100,7 @@ class Httpfs(nagiosplugin.Resource):
         self.html_auth = None
         if args.secure:
             self.html_auth=HTTPKerberosAuth()
-            auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
+            auth_token = kerberosWrapper.krb_wrapper(args.principal,args.keytab,args.cache_file)
             os.environ['KRB5CCNAME'] = args.cache_file
         self.namenode=args.namenode
         self.port=args.port
@@ -131,19 +132,19 @@ class Httpfs(nagiosplugin.Resource):
 def main():
     args = parser()
     check = nagiosplugin.Check(Httpfs(args),
-        StringContext('type',
+        stringContext.StringContext('type',
             args.type,
             fmt_metric=' is a {value}'),
-        StringContext('owner',
+        stringContext.StringContext('owner',
             args.owner,
             fmt_metric=' owner is {value}'),
-        StringContext('group',
+        stringContext.StringContext('group',
             args.group,
             fmt_metric=' group is {value}'),
-        StringContext('permission',
+        stringContext.StringContext('permission',
             args.permission,
             fmt_metric=' has {value} permission'),
-        StringContext('writable',
+        stringContext.StringContext('writable',
             True,
             fmt_metric='HTTPFS writable: {value}'))     
     check.main()

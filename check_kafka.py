@@ -20,11 +20,11 @@
 #
 # AUTHOR: Juan Carlos Fernandez <jcfernandez@redoop.org>
 
-from utils import StringContext,krb_wrapper
+import stringContext
 import nagiosplugin
 import argparse
 import subprocess
-import  re
+import re
 
 def parser():
     version="0.1"
@@ -66,8 +66,8 @@ def main():
     timeout=30 # default
     args = parser()
     check = nagiosplugin.Check(KafkaTopics(args),
-        StringContext('Under Replication',None,fmt_metric='{value} partitions are under replicated'),
-        StringContext('Unavailability',None ,fmt_metric='{value} are unavailables' )	)
+        stringContext.StringContext('Under Replication',None,fmt_metric='{value} partitions are under replicated'),
+        stringContext.StringContext('Unavailability',None ,fmt_metric='{value} are unavailables' )	)
     check.main()
     #if args.secure: auth_token.destroy()
 

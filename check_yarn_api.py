@@ -21,15 +21,13 @@
 # AUTHOR: Juan Carlos Fernandez <jcfernandez@redoop.org>
 
 from requests_kerberos import HTTPKerberosAuth
-from utils import krb_wrapper,StringContext
 from nagiosplugin.state import Ok, Warn, Critical
+import kerberosWrapper
+import stringContext
 import os
 import argparse
 import requests
-import re
-import subprocess
 import nagiosplugin
-import logging
 import ast
 import socket
 
@@ -82,7 +80,7 @@ class Resourcemanager(nagiosplugin.Resource):
 	self.html_auth = None
         if args.secure:
             self.html_auth=HTTPKerberosAuth()
-            auth_token = krb_wrapper(args.principal,args.keytab,args.cache_file)
+            auth_token = kerberosWrapper.krb_wrapper(args.principal,args.keytab,args.cache_file)
 	    os.environ['KRB5CCNAME'] = args.cache_file
 	if args.rm == 'localhost':
             self.rm=socket.getfqdn()
@@ -109,9 +107,9 @@ class Resourcemanager(nagiosplugin.Resource):
 def main():
     args = parser()
     check = nagiosplugin.Check(Resourcemanager(args),
-        StringContext('state',
+        stringContext.StringContext('state',
             'STARTED'),
-        StringContext('nodeState',
+        stringContext.StringContext('nodeState',
             'RUNNING'),
         nagiosplugin.ScalarContext('unhealthy',
             args.unhealthy_warn,

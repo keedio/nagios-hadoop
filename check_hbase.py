@@ -20,7 +20,8 @@
 #
 # AUTHOR: Juan Carlos Fernandez <jcfernandez@redoop.org>
 
-from utils import krb_wrapper,StringContext
+import kerberosWrapper
+import stringContext
 import os
 import argparse
 import nagiosplugin
@@ -71,7 +72,7 @@ class Hbase(nagiosplugin.Resource):
 def main():
     args = parser()
     check = nagiosplugin.Check(Hbase(args),
-        StringContext('status',
+        stringContext.StringContext('status',
             'OK'))
     check.main()
 

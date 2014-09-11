@@ -20,7 +20,8 @@
 #
 # AUTHOR: Juan Carlos Fernandez <jcfernandez@redoop.org>
 
-from utils import StringContext,krb_wrapper
+import stringContext
+import kerberosWrapper
 import nagiosplugin
 import argparse
 import subprocess,os,re
@@ -58,7 +59,7 @@ class ZookeeperZnode(nagiosplugin.Resource):
 
     def __init__(self,args):
         if args.secure:
-            auth_token = krb_wrapper(args.principal, args.keytab,args.cache_file)
+            auth_token = kerberosWrapper.krb_wrapper(args.principal, args.keytab,args.cache_file)
             os.environ['KRB5CCNAME'] = args.cache_file
         self.zkserver = args.hosts
         self.zk_client = args.zk_client
@@ -135,8 +136,8 @@ def main():
     timeout=10 # default
     args = parser()
     check = nagiosplugin.Check(ZookeeperZnode(args),
-        StringContext('true',True),
-        StringContext('false',False),
+        stringContext.StringContext('true',True),
+        stringContext.StringContext('false',False),
         nagiosplugin.ScalarContext('total_topics',args.warn_topics,args.crit_topics),
         nagiosplugin.ScalarContext('hosts',args.warn_hosts,args.crit_hosts))
     if args.test == "kafka":

@@ -20,11 +20,7 @@
 #
 # AUTHOR: Juan Carlos Fernandez <jcfernandez@redoop.org>
 
-from requests_kerberos import HTTPKerberosAuth
-from utils import krb_wrapper
-import os
 import argparse
-import requests
 import nagiosplugin
 import ooziestatus
 

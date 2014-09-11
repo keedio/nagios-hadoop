@@ -29,7 +29,7 @@ except ImportError:
     import json
 
 from requests_kerberos import HTTPKerberosAuth
-from utils import krb_wrapper
+import kerberosWrapper
 from collections import defaultdict
 import time
 
@@ -58,7 +58,7 @@ class OozieStatus:
             self.keytab = params.get('keytab')
             self.cache_file = params.get('cache_file','/tmp/oozie_gmond.cc')
             self.html_auth=HTTPKerberosAuth()
-            auth_token = krb_wrapper(self.principal,self.keytab,self.cache_file)
+            auth_token = kerberosWrapper.krb_wrapper(self.principal,self.keytab,self.cache_file)
             os.environ['KRB5CCNAME'] = self.cache_file
         self.coordinators = self.get_coordinators()
         if self.secure and auth_token: auth_token.destroy()

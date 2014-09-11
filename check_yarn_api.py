@@ -21,7 +21,6 @@
 # AUTHOR: Juan Carlos Fernandez <jcfernandez@redoop.org>
 
 from requests_kerberos import HTTPKerberosAuth
-from nagiosplugin.state import Ok, Warn, Critical
 import kerberosWrapper
 import stringContext
 import os

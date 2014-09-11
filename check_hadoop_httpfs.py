@@ -21,16 +21,12 @@
 # AUTHOR: Juan Carlos Fernandez <jcfernandez@redoop.org>
 
 from requests_kerberos import HTTPKerberosAuth
-from nagiosplugin.state import Ok, Warn, Critical
 import kerberosWrapper
 import stringContext
 import os
 import argparse
 import requests
-import re
-import subprocess
 import nagiosplugin
-import logging
 import ast
 
 html_auth = None

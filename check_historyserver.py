@@ -23,14 +23,10 @@
 from requests_kerberos import HTTPKerberosAuth
 import kerberosWrapper
 import stringContext
-from nagiosplugin.state import Ok, Warn, Critical
 import os
 import argparse
 import requests
-import re
-import subprocess
 import nagiosplugin
-import logging
 import ast
 import socket
 

@@ -29,7 +29,6 @@ import requests
 import re
 import subprocess
 import nagiosplugin
-import logging
 
 
 def parser():

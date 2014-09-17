@@ -78,13 +78,13 @@ class Flume(nagiosplugin.Resource):
                 channels = self.add_metrics(self.channels)
             if self.sinks is not None:
                 sinks = self.add_metrics(self.sinks)
-            if sources is not None:
-    	        if channels is not None:
-                    yield nagiosplugin.Metric('Source=>Channel',sources-channels,context="io")
+            if 'sources' in locals():
+    	        if 'channels' in locals():
+                    yield nagiosplugin.Metric('Source->Channel',sources-channels,context="io")
                 else: 
-                    yield nagiosplugin.Metric('Source=>Sink',sources-sinks,context="io")
-            if channels is not None and sinks is not None:
-                yield nagiosplugin.Metric('Channel=>Sink',channels-sinks,context="io")
+                    yield nagiosplugin.Metric('Source->Sink',sources-sinks,context="io")
+            if 'channels' in locals() and 'sinks' in locals():
+                yield nagiosplugin.Metric('Channel->Sink',channels-sinks,context="io")
         if self.test == 'living':
             if self.sources is not None:
                 for metric in self.sources:
@@ -99,7 +99,7 @@ class Flume(nagiosplugin.Resource):
     def add_metrics(self,list_metrics):
         adder = 0
         for metric in list_metrics:
-            adder+=int(self.walk_dict)
+            adder+=int(self.walk_dict(metric))
         return adder
     
     def walk_dict(self,path):

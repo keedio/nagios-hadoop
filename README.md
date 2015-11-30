@@ -1,7 +1,7 @@
 nagios-hadoop
 =============
 
-This repository contains a collection of nagios plugins to monitor Hadoop ecosystem.
+This repository contains a collection of nagios plugins to monitor Hadoop ecosystem. Only support for Apache Kafka 0.8.0 or lower.
 
 PRE-REQUISITES
 ==============

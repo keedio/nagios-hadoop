@@ -38,6 +38,7 @@ def parser():
     parser.add_argument('-c','--critical', action='store', type=int, default=10)
     parser.add_argument('-w','--warning', action='store', type=int, default=10)
     parser.add_argument('--log_file',action='store',default='nrpe/')
+    parser.add_argument('--query_size',action='store',type=int,default=5)
     args = parser.parse_args()
     if args.secure and (args.principal is None or args.keytab is None):
         parser.error("if secure cluster, both of --principal and --keytab required")
@@ -46,9 +47,6 @@ def parser():
 class Oozie(nagiosplugin.Resource):
 
     def __init__(self,args):
-	f = open('/tmp/myfile','w')
-	f.write('hi there\n') # python will convert \n to os.linesep
-	f.close()
         params={}
         params['host'] = args.host
         params['port'] = args.port
@@ -59,6 +57,7 @@ class Oozie(nagiosplugin.Resource):
 	params['cache_file'] = args.cache_file
 	params['log_file'] = args.log_file
         params['secure'] = args.secure
+        params['query_size'] = args.query_size
         self.oozie_status=ooziestatus.OozieStatus(params)
         if args.coordinators is not None:
             self.coordinators=args.coordinators

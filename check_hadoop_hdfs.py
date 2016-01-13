@@ -37,6 +37,7 @@ def parser():
     parser.add_argument('-p', '--principal', action='store', dest='principal')
     parser.add_argument('-s', '--secure',action='store_true')
     parser.add_argument('-k', '--keytab',action='store')
+    parser.add_argument('--ha',action='store_true')
     parser.add_argument('--datanode_port',action='store',type=int,default=50075)
     parser.add_argument('--cache_file',action='store', default='/tmp/nagios.krb')
     parser.add_argument('-nn','--namenodes',action='store')
@@ -98,6 +99,10 @@ class Hdfs(nagiosplugin.Resource):
                         hdfsreport[host][m.group('FIELD')] = m.group('VALUE')
                         if m.group('HUMAN'):
                             hdfsreport[host][m.group('FIELD')+'_human'] = m.group('HUMAN')
+                m = re.match('Live datanodes\s+\((?P<VALUE>.+?)\)',line)
+                if m:
+                  live=m.group('VALUE')
+                  hdfsreport['Total']['Datanodes available']=live
         else:
             return 2,"Critical: "+err
         return 0,hdfsreport
@@ -168,12 +173,14 @@ class Hdfs(nagiosplugin.Resource):
                 if datanode != 'Total':
                     # port = self.hdfsreport[datanode]['Name'].split(':')[1]
                     self.hdfsreport[datanode]['blockscanner']=self.blockscanner(datanode,self.datanode_port)
-            self.namenodes=self.getNamenodesRol(args.namenodes)
+            if args.ha:
+              self.namenodes=self.getNamenodesRol(args.namenodes)
         if args.secure and auth_token: auth_token.destroy() 
      
     def probe(self):
-        yield nagiosplugin.Metric('Active NN',sum([1 for nn in self.namenodes if self.namenodes[nn]=='active']),min=0 ,context ="active nn")
-        yield nagiosplugin.Metric('Standby NN',sum([1 for nn in self.namenodes if self.namenodes[nn]=='standby']),min=0 ,context ="standby nn")
+        if self.args.ha:
+          yield nagiosplugin.Metric('Active NN',sum([1 for nn in self.namenodes if self.namenodes[nn]=='active']),min=0 ,context ="active nn")
+          yield nagiosplugin.Metric('Standby NN',sum([1 for nn in self.namenodes if self.namenodes[nn]=='standby']),min=0 ,context ="standby nn")
         yield nagiosplugin.Metric('used%',float(self.hdfsreport['Total']['DFS Used%'].replace('%','')),min=0 ,context = "used")
         yield nagiosplugin.Metric('datanodes',int(self.hdfsreport['Total']['Datanodes available']),min=0 ,context = "datanodes")
         yield nagiosplugin.Metric('under_replication', int(self.hdfsreport['Total']['Under replicated blocks']), min = 0, context = "ureplicated")

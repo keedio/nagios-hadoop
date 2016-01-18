@@ -26,6 +26,8 @@ import nagiosplugin
 import argparse
 import subprocess,os,re
 import ast
+from kazoo.client import KazooClient
+import kazoo
 
 def parser():
     version="0.1"
@@ -53,6 +55,7 @@ def parser():
 
 class ZookeeperZnode(nagiosplugin.Resource):
     def call_zk(self,cmd,url):
+        print self.zk_client,'-server', self.zkserver, cmd, url
         response = subprocess.Popen([self.zk_client,'-server', self.zkserver, cmd, url],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output,err = response.communicate()
         return output.splitlines()[-1],err
@@ -72,25 +75,31 @@ class ZookeeperZnode(nagiosplugin.Resource):
         self.check_topics=args.check_topics
         self.topic=args.topic
 	if args.secure and auth_token: auth_token.destroy()
+        self.zk = KazooClient(hosts=self.zkserver)
+        self.zk.start()
+ 
 
     def probe(self):
         return self.tests[self.test]()
     
-    def znode_exist(self,path):
-        output,err = self.call_zk('stat',path)
-        if err is None or re.match('^Node does not exist:\s*%s' % path,err) is None:
-            return True
-        else:
-            return False
+    #def znode_exist(self,path):
+    #    result=zk.exists(path)
+    #    zk.stop()
+    #    return result
+    #    #output,err = self.call_zk('stat',path)
+    #    #if err is None or re.match('^Node does not exist:\s*%s' % path,err) is None:
+    #    #    return True
+    #    #else:
+    #    #    return False
 
     def check_hdfs(self):
-        return [nagiosplugin.Metric('ActiveNN lock', self.znode_exist('/hadoop-ha/' + self.hdfs_cluster_name + '/ActiveStandbyElectorLock'),context='true')]
+        return [nagiosplugin.Metric('ActiveNN lock', self.zk.exists('/hadoop-ha/' + self.hdfs_cluster_name + '/ActiveStandbyElectorLock') is not None,context='true')]
 
     def check_hbase(self):
-        return [ nagiosplugin.Metric('Hbase Master', self.znode_exist('/hbase/master'), context='true'),
-            nagiosplugin.Metric('Failover', self.znode_exist('/hbase/backup-masters'), context='true'),
-            nagiosplugin.Metric('Metaregion server', self.znode_exist('/hbase/meta-region-server'), context='true'),
-            nagiosplugin.Metric('Unassigned', self.znode_exist('/hbase/unassigned'), context='false')]
+        return [ nagiosplugin.Metric('Hbase Master', self.zk.exists('/hbase/master') is not None, context='true'),
+            nagiosplugin.Metric('Failover', self.zk.exists('/hbase/backup-masters') is not None, context='true'),
+            nagiosplugin.Metric('Metaregion server', self.zk.exists('/hbase/meta-region-server') is not None, context='true'),
+            nagiosplugin.Metric('Unassigned', self.zk.exists('/hbase/unassigned') is None, context='false')]
 
     def check_kafka(self):
         metrics=[]
@@ -109,26 +118,28 @@ class ZookeeperZnode(nagiosplugin.Resource):
     def get_kafka_state(self):
         ids_parsed=dict()
         topics_parsed=dict()
-        output,err=self.call_zk('ls','/brokers/ids')
-	if err is None or err is "":
-            ids=ast.literal_eval(output)
-            for host in ids:
-                ids_parsed[host]=ast.literal_eval(self.call_zk('get','/brokers/ids/%d' % host)[0])
-            if self.znode_exist('/brokers/topics'):
-                if self.topic is not None:
-                    topics=[self.topic]
-                else:
-                    output,err=self.call_zk('ls','/brokers/topics')
-                    topics=output.replace('[','').replace(']','').replace(',',' ').split()
-                for topic in topics:
-                    topics_parsed[topic]=dict()
-                    if self.check_topics:
-                        output,err=self.call_zk('get','/brokers/topics/%s' % topic)
-                        topics_parsed[topic]['partitions']=ast.literal_eval(output)['partitions']
-                        topics_parsed[topic]['isr']=dict()
-                        for partition in topics_parsed[topic]['partitions'].keys():
-                            output=ast.literal_eval(self.call_zk('get','/brokers/topics/%s/partitions/%s/state' % (topic,partition))[0])
-                            topics_parsed[topic]['isr'][partition]=output['isr']
+        #output,err=self.call_zk('ls','/brokers/ids')
+        #output,err=self.call_zk('ls','/')
+        #if err is None or err is "":
+        #    ids=ast.literal_eval(output)
+        ids = self.zk.get_children('/brokers/ids')
+        for host in ids:
+            ids_parsed[str(host)]=ast.literal_eval(self.zk.get('/brokers/ids/%d' % int(host))[0])
+        if self.zk.exists('/brokers/topics') is not None:
+            if self.topic is not None:
+                topics=[self.topic]
+            else:
+                topics=self.zk.get_children('/brokers/topics')
+            for topic in topics:
+                topics_parsed[str(topic)]=dict()
+                if self.check_topics:
+                    aux=self.zk.get('/brokers/topics/%s' % str(topic))[0]
+                    topic_stat=ast.literal_eval(aux)
+                    topics_parsed[str(topic)]['partitions']=topic_stat['partitions']
+                    topics_parsed[str(topic)]['isr']=dict()
+                    for partition in topics_parsed[topic]['partitions'].keys():
+                        output=ast.literal_eval(self.zk.get('/brokers/topics/%s/partitions/%s/state' % (topic,partition))[0])
+                        topics_parsed[str(topic)]['isr'][partition]=output['isr']
         return topics_parsed,ids_parsed
         
 @nagiosplugin.guarded

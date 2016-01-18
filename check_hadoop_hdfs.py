@@ -40,7 +40,7 @@ def parser():
     parser.add_argument('--ha',action='store_true')
     parser.add_argument('--datanode_port',action='store',type=int,default=50075)
     parser.add_argument('--cache_file',action='store', default='/tmp/nagios.krb')
-    parser.add_argument('-nn','--namenodes',action='store')
+    parser.add_argument('-nn','--namenodes',action='store',default='nn1,nn2')
     parser.add_argument('--warning_used',action='store', type=float,default=70.00)
     parser.add_argument('--warning_blocks',action='store', type=int,default=250000)
     parser.add_argument('--warning_balanced',action='store',type=float,default=5.00)
@@ -163,6 +163,7 @@ class Hdfs(nagiosplugin.Resource):
     def __init__(self,args):
         self.html_auth = None
         self.datanode_port=args.datanode_port
+        self.ha=args.ha
         if args.secure:
             self.html_auth=HTTPKerberosAuth()
             auth_token = kerberosWrapper.krb_wrapper(args.principal,args.keytab,args.cache_file)
@@ -178,7 +179,7 @@ class Hdfs(nagiosplugin.Resource):
         if args.secure and auth_token: auth_token.destroy() 
      
     def probe(self):
-        if self.args.ha:
+        if self.ha:
           yield nagiosplugin.Metric('Active NN',sum([1 for nn in self.namenodes if self.namenodes[nn]=='active']),min=0 ,context ="active nn")
           yield nagiosplugin.Metric('Standby NN',sum([1 for nn in self.namenodes if self.namenodes[nn]=='standby']),min=0 ,context ="standby nn")
         yield nagiosplugin.Metric('used%',float(self.hdfsreport['Total']['DFS Used%'].replace('%','')),min=0 ,context = "used")

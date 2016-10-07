@@ -188,9 +188,9 @@ class Hdfs(nagiosplugin.Resource):
         yield nagiosplugin.Metric('missing_blocks',int(self.hdfsreport['Total']['Missing blocks']),min=0 , context = "missing")
         yield nagiosplugin.Metric('corrupted_replicas',int(self.hdfsreport['Total']['Blocks with corrupt replicas']),min=0, context = "corrupt")
         yield nagiosplugin.Metric('balanced',self.getBalance(),min=0, context = "balanced")
-        for datanode in self.hdfsreport.keys():
-            if datanode != 'Total':
-                yield nagiosplugin.Metric(datanode, int(self.hdfsreport[datanode]['blockscanner']['Total Blocks']), min = 0,context = "total_blocks")
+        #for datanode in self.hdfsreport.keys():
+        #    if datanode != 'Total':
+        #        yield nagiosplugin.Metric(datanode, int(self.hdfsreport[datanode]['blockscanner']['Total Blocks']), min = 0,context = "total_blocks")
         
 
 class HdfsSummary(nagiosplugin.Summary):
